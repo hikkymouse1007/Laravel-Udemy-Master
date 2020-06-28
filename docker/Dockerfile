@@ -15,3 +15,5 @@ ENV PATH $PATH:/composer/vendor/bin
 WORKDIR /var/www/html
 
 RUN composer global require "laravel/installer"
+## ここがないとroutingできない
+RUN a2enmod rewrite
