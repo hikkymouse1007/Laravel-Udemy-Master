@@ -1,0 +1,53 @@
+version: '3'
+
+services:
+  nginx-proxy:
+    image: jwilder/nginx-proxy
+    ports:
+      - 80:80
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+
+  u-web:
+    container_name: u-web
+    build: ./docker
+    ports:
+      - 8000:80
+    privileged: true
+    volumes:
+      - ./app:/var/www/html
+    links:
+      - u-db
+    depends_on:
+      - u-db
+    environment:
+      - VIRTUAL_HOST=laravel.udemy.localhost
+
+  u-db:
+    image: mysql:5.7
+    container_name: u-db-host
+    environment:
+      MYSQL_ROOT_PASSWORD: test
+      MYSQL_DATABASE: udemy
+      MYSQL_USER: test
+      MYSQL_PASSWORD: test
+      TZ: 'Asia/Tokyo'
+    command: mysqld --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - ./docker/db/data:/var/lib/mysql
+      - ./docker/db/my.cnf:/etc/mysql/conf.d/my.cnf
+      - ./docker/db/sql:/docker-entrypoint-initdb.d
+    ports:
+      - 3306:3306
+    restart: always
+
+  phpmyadmin:
+    container_name: phpmyadmin
+    image: phpmyadmin/phpmyadmin
+    environment:
+      - PMA_ARBITRARY=1
+      - PMA_HOSTS=u-db-host
+      - PMA_USER=test
+      - PMA_PASSWORD=test
+    ports:
+      - 8080:80
