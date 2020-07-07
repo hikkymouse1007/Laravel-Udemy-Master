@@ -24,9 +24,8 @@ class PostController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function show(Request $request, $id)
+    public function show($id)
     {
-        $request->session()->reflash();
         return view('posts.show', ['post' => BlogPost::findorFail($id)]);
     }
 
@@ -42,5 +41,33 @@ class PostController extends Controller
         $request->session()->flash('status', 'Blog post was created!');
 
         return redirect()->route('posts.show', ['post' => $blogPost->id]);
+    }
+
+    public function edit($id)
+    {
+        $post = BlogPost::findorFail($id);
+        return view('posts.edit', ['post' => $post]);
+    }
+
+    public function update(StorePost $request,$id)
+    {
+        $post = BlogPost::findorFail($id);
+        $validatedData = $request->validated();
+
+        $post->fill($validatedData);
+        $post->save();
+        $request->session()->flash('status', 'Blog post was updated!');
+
+        return redirect()->route('posts.show', ['post' => $post->id]);
+    }
+
+    public function destroy(Request $request, $id)
+    {
+        $post = BlogPost::findorFail($id);
+        $post->delete();
+
+        $request->session()->flash('status', 'Blog post was deleted!');
+        return redirect()->route('posts.index');
+
     }
 }
