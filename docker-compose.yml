@@ -29,7 +29,7 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: test
       MYSQL_DATABASE: udemy
-      MYSQL_USER: test
+      MYSQL_USER: root
       MYSQL_PASSWORD: test
       TZ: 'Asia/Tokyo'
     command: mysqld --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
@@ -47,7 +47,7 @@ services:
     environment:
       - PMA_ARBITRARY=1
       - PMA_HOSTS=u-db-host
-      - PMA_USER=test
+      - PMA_USER=root
       - PMA_PASSWORD=test
     ports:
       - 8080:80

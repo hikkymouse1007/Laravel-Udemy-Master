@@ -7,6 +7,13 @@ RUN apt-get update \
   && docker-php-ext-install zip pdo_mysql mysqli \
   && docker-php-ext-enable mysqli
 
+#nodejs
+RUN apt-get install -y wget git unzip libpq-dev \
+    && : 'Install Node.js' \
+    &&  curl -sL https://deb.nodesource.com/setup_14.x | bash - \
+    && : 'Install PHP Extensions' \
+    && apt-get install -y nodejs
+
 COPY --from=composer /usr/bin/composer /usr/bin/composer
 ENV COMPOSER_ALLOW_SUPERUSER 1
 ENV COMPOSER_HOME /composer
@@ -15,3 +22,5 @@ ENV PATH $PATH:/composer/vendor/bin
 WORKDIR /var/www/html
 
 RUN composer global require "laravel/installer"
+## ここがないとroutingできない
+RUN a2enmod rewrite
