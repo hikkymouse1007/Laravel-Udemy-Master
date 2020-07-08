@@ -68,6 +68,5 @@ class PostController extends Controller
 
         $request->session()->flash('status', 'Blog post was deleted!');
         return redirect()->route('posts.index');
-
     }
 }

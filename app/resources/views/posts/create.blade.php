@@ -6,7 +6,7 @@
 
     @include('posts._form')
 
-    <button type="submit">Update!</button>
+    <button type="submit" class="btn btn-primary">Create!</button>
 </form>
 @endsection
 
