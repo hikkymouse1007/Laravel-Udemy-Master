@@ -11,6 +11,8 @@ class AddTitleContentToBlogpostsTable extends Migration
      *
      * @return void
      */
+    # phpunitでsqliteを使用するときはnullの制約に注意
+    # https://qiita.com/sola-msr/items/80b0c0e0edb67a35d282
     public function up()
     {
         Schema::table('blogposts', function (Blueprint $table) {
