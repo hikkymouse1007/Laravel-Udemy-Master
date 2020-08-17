@@ -16,7 +16,11 @@ class CreateProfilesTable extends Migration
         Schema::create('profiles', function (Blueprint $table) {
             $table->id();
             $table->timestamps();
-            $table->foreignId('author_id')->constrained('authors');
+            // $table->unsignedBigInteger('author_id')->unique();
+            // $table->foreign('author_id')->references('id')->on('authors'); //外部キー参照
+
+            // Laravel 7.x系の外部キーエイリアスではuniqueを先に設定しないと一意の制約がかからない
+            $table->foreignId('author_id')->unique()->constrained();
         });
     }
 
