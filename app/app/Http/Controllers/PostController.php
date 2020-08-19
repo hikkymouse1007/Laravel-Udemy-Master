@@ -45,7 +45,9 @@ class PostController extends Controller
      */
     public function show($id)
     {
-        return view('posts.show', ['post' => BlogPost::findorFail($id)]);
+        return view('posts.show',
+            ['post' => BlogPost::with('comments')->findorFail($id)
+        ]);
     }
 
     public function create()
