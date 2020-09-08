@@ -53,7 +53,8 @@ class PostTest extends TestCase
             'content' => 'At least 10 characters'
         ];
 
-        $this->post('/posts', $params)
+        $this->actingAs($this->user())
+            ->post('/posts', $params)
             ->assertStatus(302)
             ->assertSessionHas('status');
 
@@ -67,7 +68,8 @@ class PostTest extends TestCase
             'content' => 'x'
         ];
 
-        $this->post('/posts', $params)
+        $this->actingAs($this->user())
+            ->post('/posts', $params)
             ->assertStatus(302)
             ->assertSessionHas('errors');
 
@@ -92,9 +94,10 @@ class PostTest extends TestCase
             'content' => 'Content was changed'
         ];
 
-        $this->put("/posts/{$post->id}", $params)
-        ->assertStatus(302)
-        ->assertSessionHas('status');
+        $this->actingAs($this->user())
+            ->put("/posts/{$post->id}", $params)
+            ->assertStatus(302)
+            ->assertSessionHas('status');
 
         $this->assertEquals(session('status'), 'Blog post was updated!');
         $this->assertDatabaseMissing('blog_posts', [
@@ -112,9 +115,10 @@ class PostTest extends TestCase
             'content' => 'Content of the blog post'
         ]);
 
-        $this->delete("/posts/{$post->id}")
-        ->assertStatus(302)
-        ->assertSessionHas('status');
+        $this->actingAs($this->user())
+            ->delete("/posts/{$post->id}")
+            ->assertStatus(302)
+            ->assertSessionHas('status');
 
         $this->assertEquals(session('status'), 'Blog post was deleted!');
         $this->assertDatabaseMissing('blog_posts', [
