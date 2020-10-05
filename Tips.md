@@ -123,3 +123,25 @@ php artisan make:migration create_{テーブル名} --create={テーブル名}
 php artisan make:migration modify_{テーブル名}{YYYYMMDD} --table={テーブル名}
 例）php artisan make:migration modifyusers_20160128 --table=users
 ```
+
+
+カラムをドロップするには、スキーマビルダのdropColumnメソッドを使用します。
+SQLiteデータベースからカラムをドロップする場合は、事前にcomposer.jsonファイルへ
+doctrine/dbal依存パッケージを追加してください。
+その後にライブラリーをインストールするため
+、ターミナルでcomposer updateを実行してください。
+
+```
+Schema::table('users', function (Blueprint $table) {
+    $table->dropColumn('votes');
+});
+```
+
+dropColumnメソッドにカラム名の配列を渡せば、テーブルから複数のカラムをドロップできます。
+
+```
+Schema::table('users', function (Blueprint $table) {
+    $table->dropColumn(['votes', 'avatar', 'location']);
+});
+
+```
