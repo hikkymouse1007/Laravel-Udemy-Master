@@ -97,6 +97,60 @@ php artisan db:seed -n
 ```
 
 TODO: migrate:refreshでエラーが出てしまう
+=> 解決
+- renameに関するエラーはdrop()ではなく、rename()でもどす
+https://awesome-programmer.hateblo.jp/entry/2019/06/26/204015
+
+```
+public function up()
+    {
+        Schema::rename('blogposts', 'blog_posts');
+    }
+
+    /**
+     * Reverse the migrations.
+     *
+     * @return void
+     */
+    public function down()
+    {
+        Schema::rename('blog_posts',  'blogposts' );
+    }
+```
+
+- 外部キーのdropは、indexから外すこと
+参考:phpmyadminからインデックスを確認できる(またはmysqlのshow index)
+![Uploading スクリーンショット 2020-10-05 23.57.57.png…]()
+
+```
+mysql > show index from blog_posts;
++------------+------------+----------------------------+--------------+-------------+-----------+-------------+----------+--------+------+------------+---------+---------------+
+| Table      | Non_unique | Key_name                   | Seq_in_index | Column_name | Collation | Cardinality | Sub_part | Packed | Null | Index_type | Comment | Index_comment |
++------------+------------+----------------------------+--------------+-------------+-----------+-------------+----------+--------+------+------------+---------+---------------+
+| blog_posts |          0 | PRIMARY                    |            1 | id          | A         |           0 |     NULL | NULL   |      | BTREE      |         |               |
+| blog_posts |          1 | blog_posts_user_id_foreign |            1 | user_id     | A         |           0 |     NULL | NULL   |      | BTREE      |         |               |
++------------+------------+----------------------------+--------------+-------------+-----------+-------------+----------+--------+------+------------+---------+---------------+
+```
+
+
+```
+
+    /**
+     * Reverse the migrations.
+     *'
+     * @return void
+     */
+    public function down()
+    {
+        // Schema::disableForeignKeyConstraints();
+        // // DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+        Schema::table('blog_posts', function (Blueprint $table) {
+            $table->dropForeign('blog_posts_user_id_foreign');
+            $table->dropColumn('user_id'); // TODO:refreshできない
+        });
+        // Schema::enableForeignKeyConstraints();
+    }
+```
 
 ### その他諸々
 
