@@ -98,3 +98,28 @@ php artisan db:seed -n
 
 TODO: migrate:refreshでエラーが出てしまう
 
+### その他諸々
+
+make:migrationについて
+
+```
+// UserModelごと
+php artisan make:migration create_users_table --create=users
+
+// Userモデルへのカラム 追加
+
+php artisan make:migration add_votes_to_users_table --table=users
+
+```
+
+命名規則を作っておくと問題を解消しやすい
+
+```
+テーブル作成時
+php artisan make:migration create_{テーブル名} --create={テーブル名}
+例）php artisan make:migration create_users --create=users
+
+テーブル変更時
+php artisan make:migration modify_{テーブル名}{YYYYMMDD} --table={テーブル名}
+例）php artisan make:migration modifyusers_20160128 --table=users
+```
