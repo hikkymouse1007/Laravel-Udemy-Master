@@ -120,7 +120,8 @@ public function up()
 
 - 外部キーのdropは、indexから外すこと
 参考:phpmyadminからインデックスを確認できる(またはmysqlのshow index)
-![Uploading スクリーンショット 2020-10-05 23.57.57.png…]()
+![スクリーンショット 2020-10-05 23 57 57](https://user-images.githubusercontent.com/54907440/95096803-b420b380-0767-11eb-8577-d7bfa7362a0c.png)
+
 
 ```
 mysql > show index from blog_posts;
