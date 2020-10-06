@@ -15,9 +15,6 @@ class AddUserToBlogPostsTable extends Migration
     public function up()
     {
         Schema::table('blog_posts', function (Blueprint $table) {
-            // $table->foreignId('user_id')->nullable->constrained();
-
-            // テストデータベースがsqliteの時はdefaultを入れる必要がある(constrained()の前に設定)
             if (env('DB_CONNECTION') === 'sqlite_testing') {
                 $table->foreignId('user_id')->default(0)->constrained();
             } else {
@@ -37,7 +34,7 @@ class AddUserToBlogPostsTable extends Migration
         // // DB::statement('SET FOREIGN_KEY_CHECKS=0;');
         Schema::table('blog_posts', function (Blueprint $table) {
             $table->dropForeign('blog_posts_user_id_foreign');
-            $table->dropColumn('user_id'); // TODO:refreshできない
+            $table->dropColumn('user_id');
         });
         // Schema::enableForeignKeyConstraints();
     }
