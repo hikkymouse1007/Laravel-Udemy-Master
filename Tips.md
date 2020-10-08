@@ -565,3 +565,93 @@ $post->forceDelete();
 Testing soft deleted models
 
 TODO:assertSoftDeleteが通らない
+
+# 87
+Gates
+Providerに定義したクロージャを実行し、
+データをフィルタリングできる
+> ゲートは、特定のアクションを実行できる許可が、あるユーザーにあるかを決めるクロージャのことです。通常は、App\Providers\AuthServiceProviderの中で、Gateファサードを使用し、定義します。ゲートは常に最初の引数にユーザーインスタンスを受け取ります。関連するEloquentモデルのような、追加の引数をオプションとして受け取ることもできます。
+https://readouble.com/laravel/7.x/ja/authorization.html
+
+
+```
+// app/app/Providers/AuthServiceProvider.php
+public function boot()
+    {
+        $this->registerPolicies();
+
+        Gate::define('update-post', function ($user, $post) { //defineの'updata-post'の名前は任意のもの
+            return $user->id == $post->user_id;
+        });
+    }
+```
+
+Gateを呼び出す
+```
+use Illuminate\Support\Facades\Gate;
+
+class PostController extends Controller
+{
+    ~~~~
+
+public function update(StorePost $request,$id)
+    {
+        $post = BlogPost::findorFail($id);
+
+        if (Gate::denies('update-post', $post)) { //呼び出し
+            abort(403, "You can't edit this blog post!!");
+        }
+
+```
+
+# 88 
+Authorize
+app/app/Providers/AuthServiceProvider.php
+をGateと同じように呼び出し可能
+```
+// app/app/Http/Controllers/PostController.php
+
+public function destroy(Request $request, $id)
+    {
+        $post = BlogPost::findorFail($id);
+
+        // if (Gate::denies('delete-post', $post)) {
+        //     abort(403, "You can't edit this blog post!!");
+        // }
+        $this->authorize('delete-post', $post); // 条件に合わなければ403を返す
+
+```
+
+# 89
+Gateのallows()について
+denies()の逆であり、
+同様にtrue, falseを返す
+```
+$post = BlogPost::find(17);
+[!] Aliasing 'BlogPost' to 'App\BlogPost' for this Tinker session.
+=> App\BlogPost {#4040
+     id: 17,
+     created_at: "2020-10-08 13:44:37",
+     updated_at: "2020-10-08 13:44:37",
+     title: "Vitae esse iusto autem aut enim placeat aspernatur.",
+     content: """
+       Tenetur consequatur sint sed molestiae nemo vero occaecati. Ad in natus voluptas quo enim. Molestias adipisci tempora qui. Nobis fuga et reprehenderit et non.
+       """,
+     user_id: 19,   // IDは19
+     deleted_at: null,
+   }
+>>> $user = User::find(1);
+=> App\User {#4039
+     id: 1,         // IDは１
+     name: "Oliver Sykes",
+     email: "olover@laravel.test",
+     email_verified_at: "2020-10-08 13:44:36",
+     created_at: "2020-10-08 13:44:36",
+     updated_at: "2020-10-08 13:44:36",
+   }
+>>> Gate::forUser($user)->denies('update->post', $post); 
+=> true
+>>> Gate::forUser($user)->allows('update->post', $post);
+=> false
+>>>
+```
