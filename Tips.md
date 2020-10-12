@@ -868,7 +868,6 @@ Use middleware to authorize routes
 @endcan
 ```
 
-# 95 
 middlewareからのPolicy適応
 // 
 
@@ -884,3 +883,12 @@ Route::get('/secret', 'HomeController@secret')
     ->name('secret')
     ->middleware('can:home.secret'); //middlewareからPolicyを呼び出し
 ```
+
+# 95
+>I had the same problem in testing of both update and delete. The clue was in BlogPostPolicy, for example, delete method
+
+public function delete(User $user, BlogPost $blogPost)
+{
+    return $user->id === $blogPost->user_id;
+}
+I don't know why but $blogPost->user_id returns a string and $user->id returns a number. This happened only in test and not in dev environment. So just use == instead of ===.
