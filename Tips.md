@@ -565,3 +565,330 @@ $post->forceDelete();
 Testing soft deleted models
 
 TODO:assertSoftDeleteが通らない
+// #90で解説されるが、!==が正しい。
+
+```
+if (env('DB_CONNECTION') !== 'sqlite_testing') {
+                $table->dropForeign(['blog_post_id']);
+            }
+```
+
+
+# 87
+Gates
+Providerに定義したクロージャを実行し、
+データをフィルタリングできる
+> ゲートは、特定のアクションを実行できる許可が、あるユーザーにあるかを決めるクロージャのことです。通常は、App\Providers\AuthServiceProviderの中で、Gateファサードを使用し、定義します。ゲートは常に最初の引数にユーザーインスタンスを受け取ります。関連するEloquentモデルのような、追加の引数をオプションとして受け取ることもできます。
+https://readouble.com/laravel/7.x/ja/authorization.html
+
+
+```
+// app/app/Providers/AuthServiceProvider.php
+public function boot()
+    {
+        $this->registerPolicies();
+
+        Gate::define('update-post', function ($user, $post) { //defineの'updata-post'の名前は任意のもの
+            return $user->id == $post->user_id;
+        });
+    }
+```
+
+Gateを呼び出す
+```
+use Illuminate\Support\Facades\Gate;
+
+class PostController extends Controller
+{
+    ~~~~
+
+public function update(StorePost $request,$id)
+    {
+        $post = BlogPost::findorFail($id);
+
+        if (Gate::denies('update-post', $post)) { //呼び出し
+            abort(403, "You can't edit this blog post!!");
+        }
+
+```
+
+# 88 
+Authorize
+app/app/Providers/AuthServiceProvider.php
+をGateと同じように呼び出し可能
+```
+// app/app/Http/Controllers/PostController.php
+
+public function destroy(Request $request, $id)
+    {
+        $post = BlogPost::findorFail($id);
+
+        // if (Gate::denies('delete-post', $post)) {
+        //     abort(403, "You can't edit this blog post!!");
+        // }
+        $this->authorize('delete-post', $post); // 条件に合わなければ403を返す
+
+```
+
+# 89
+Gateのallows()について
+denies()の逆であり、
+同様にtrue, falseを返す
+```
+$post = BlogPost::find(17);
+[!] Aliasing 'BlogPost' to 'App\BlogPost' for this Tinker session.
+=> App\BlogPost {#4040
+     id: 17,
+     created_at: "2020-10-08 13:44:37",
+     updated_at: "2020-10-08 13:44:37",
+     title: "Vitae esse iusto autem aut enim placeat aspernatur.",
+     content: """
+       Tenetur consequatur sint sed molestiae nemo vero occaecati. Ad in natus voluptas quo enim. Molestias adipisci tempora qui. Nobis fuga et reprehenderit et non.
+       """,
+     user_id: 19,   // IDは19
+     deleted_at: null,
+   }
+>>> $user = User::find(1);
+=> App\User {#4039
+     id: 1,         // IDは１
+     name: "Oliver Sykes",
+     email: "olover@laravel.test",
+     email_verified_at: "2020-10-08 13:44:36",
+     created_at: "2020-10-08 13:44:36",
+     updated_at: "2020-10-08 13:44:36",
+   }
+>>> Gate::forUser($user)->denies('update->post', $post); 
+=> true
+>>> Gate::forUser($user)->allows('update->post', $post);
+=> false
+>>>
+```
+
+# 90
+admin_permission
+>ゲートチェックのインターセプト
+特定のユーザーに全アビリティーへ許可を与えたい場合もあります。beforeメソッドは、他のすべての認可チェック前に実行される、コールバックを定義します。
+https://readouble.com/laravel/8.x/ja/authorization.html
+
+
+
+```
+Gate::before(function ($user, $ability) {
+            if ($user->is_admin){
+                return true;
+            }
+        });
+
+// Gate::defineの前に実行
+Gate::before(function ($user, $ability) {
+            if ($user->is_admin && in_array($ability, ['update-post'])) { //'update-postのみ許可したい時
+                return true;
+            }
+        });
+
+// Gate::defineの後に実行
+Gate::after(function ($user, $ability, $result) {
+            if ($user->is_admin)  {
+                return true;
+            }
+```
+
+# 91
+Policy introduction
+Gateはそのまま指定すると肥大化しやすいのでそういうケースではPolicyを使う
+
+Controllerのようにアクションを設定できる
+>ポリシーは特定のモデルやリソースに関する認可ロジックを系統立てるクラスです。たとえば、ブログアプリケーションの場合、Postモデルとそれに対応する、ポストを作成／更新するなどのユーザーアクションを認可するPostPolicyを持つことになるでしょう。
+https://readouble.com/laravel/7.x/ja/authorization.html
+
+>モデルポリシーをいちいち登録する代わりに、
+モデルとポリシーの標準命名規則にしたがっているポリシーを自動的にLaravelは見つけます。
+具体的にはモデルが含まれているディレクトリの下に存在する、Policiesディレクトリ中のポリシーです。
+たとえば、モデルがappディレクトリ下にあれば、ポリシーはapp/Policiesディレクトリへ置く必要があります。
+さらに、ポリシーの名前は対応するモデルの名前へ、Policyサフィックスを付けたものにする必要があります。
+ですから、Userモデルに対応させるには、UserPolicyクラスと命名します。
+
+Udemyのバージョンが古いため、公式を参考に実装する。
+>Tip!! ポリシーを--modelオプションを付け、Artisanコマンドにより生成した場合、viewAny、view、create、update、delete、restore、forceDeleteアクションが含まれています。
+
+```
+$ php artisan make:policy BlogPostPolicy --model=BlogPost
+
+// app/Policies/BlogPostPolicy.php
+// CRUDのように定義できる
+class BlogPostPolicy
+{
+    use HandlesAuthorization;
+    // trueなら許可、falseなら否認
+    public function update(User $user, BlogPost $blogPost)
+    {
+        return $user->id === $blogPost->user_id;
+    }
+    public function delete(User $user, BlogPost $blogPost)
+    {
+        return $user->id === $blogPost->user_id;
+    }
+
+// app/app/Providers/AuthServiceProvider.php
+namespace App\Providers;
+
+use App\BlogPost;
+use App\Policies\BlogPostPolicy;
+use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
+use Illuminate\Support\Facades\Gate;
+
+class AuthServiceProvider extends ServiceProvider
+{
+    protected $policies = [
+        BlogPost::class => BlogPostPolicy::class,
+    ];
+
+    Gate::define('post.update', 'App\Policies\BlogPostPolicy@update');
+    Gate::define('post.delete', 'App\Policies\BlogPostPolicy@delete');
+
+    // Gate::before(function ($user, $ability) {
+    //     if ($user->is_admin && in_array($ability, ['post.update'])) {
+    //         return true;
+    //     }
+    // });    
+```
+
+Gate::resource()で一括でポリシーを提供できる
+
+```
+// posts.create, posts.view, posts.update, posts.deleteを提供
+        // モデル名を指定してPolicyを作った場合のデフォルト名で提供, メゾッド名は変更できない
+        // $ php artisan make:policy BlogPostPolicy --model=BlogPost
+        Gate::resource('posts', 'App\Policies\BlogPostPolicy');
+```
+
+# 92 
+Policy or Gate?
+$policiesにモデル名を指定すると、
+モデルインスタンスのに対してpolicyを自動でアタッチしてくれる
+```
+// app/app/Providers/AuthServiceProvider.php
+class AuthServiceProvider extends ServiceProvider
+{
+protected $policies = [
+        'App\Model' => 'App\Policies\ModelPolicy',
+        'App\BlogPost' => 'App\Policies\BlogPostPolicy',
+    ];
+
+// app/Policies/BlogPostPolicy.php
+public function update(User $user, BlogPost $blogPost)
+    {
+        return $user->id === $blogPost->user_id;
+    }
+
+// app/Http/Controllers/PostController.php
+public function edit($id)
+    {
+        $post = BlogPost::findorFail($id);
+        $this->authorize('update', $post); //BlogPostモデルのpolicyが呼ばれる
+
+        return view('posts.edit', ['post' => $post]);
+    }
+
+```
+
+コントローラのaction_nameから、policy_nameを推測してくれるので、
+authorize()の第一引数を省略することも可能。
+
+
+```
+// 'controller_method_name' => 'policy_method_name'　の対応で変換
+// [
+//     'show' => ''view',
+//     'create' => 'create',
+//     'store' => 'create',
+//     'edit' => 'update',
+//     'update' => 'update',
+//     'destroy' => 'delete',
+// ]
+
+public function edit($id)
+    {
+        $post = BlogPost::findorFail($id);
+        // $this->authorize('update', $post);
+        $this->authorize($post);
+
+        return view('posts.edit', ['post' => $post]);
+    }
+```
+
+# 93
+bladetemplateでのpermission
+自分の投稿しかリンクが現れなくなる
+```
+            @can('update', $post) // gate_nameを指定
+            <a href="{{ route('posts.edit', ['post' => $post->id] )}}"
+                class="btn btn-primary">
+                Edit
+            </a>
+            @endcan
+
+            @cannot('delete', $post)
+                <p>You can't delete this post.</p>
+            @endcannot
+
+            @can('delete', $post)
+            <form method="POST" class="fm-inline"  action="{{ route('posts.destroy', ['post' => $post->id] )}}">
+                @csrf
+                @method('DELETE')
+
+                <input type="submit" value="Delete!" class="btn btn-primary" >
+            </form>
+            @endcan
+```
+
+<img width="552" alt="スクリーンショット 2020-10-10 16 46 34" src="https://user-images.githubusercontent.com/54907440/95649395-39b1b400-0b18-11eb-99dc-6022546033f3.png">
+
+
+
+
+adminのみ全てのupdate, delete許可
+```
+Gate::before(function ($user, $ability) {
+            if ($user->is_admin && in_array($ability, ['update', 'delete'])) {
+                return true;
+            }
+        });
+```
+
+<img width="530" alt="スクリーンショット 2020-10-10 16 40 57" src="https://user-images.githubusercontent.com/54907440/95649333-f48d8200-0b17-11eb-8db0-65419cd69895.png">
+
+# 94
+Use middleware to authorize routes
+
+```
+// app/resources/views/contact.blade.php
+@can('home.secret')
+    <p>Special contact details</p>
+@endcan
+```
+
+middlewareからのPolicy適応
+// 
+
+```
+// app/app/Providers/AuthServiceProvider.php
+
+       Gate::define('home.secret', function ($user) {
+            return $user->is_admin;
+        });
+
+// app/route.php
+Route::get('/secret', 'HomeController@secret')
+    ->name('secret')
+    ->middleware('can:home.secret'); //middlewareからPolicyを呼び出し
+```
+
+# 95
+>I had the same problem in testing of both update and delete. The clue was in BlogPostPolicy, for example, delete method
+
+public function delete(User $user, BlogPost $blogPost)
+{
+    return $user->id === $blogPost->user_id;
+}
+I don't know why but $blogPost->user_id returns a string and $user->id returns a number. This happened only in test and not in dev environment. So just use == instead of ===.

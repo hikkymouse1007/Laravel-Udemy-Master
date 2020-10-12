@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\BlogPost;
 use App\Http\Requests\StorePost;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 
 class PostController extends Controller
 {
@@ -58,6 +59,7 @@ class PostController extends Controller
 
     public function create()
     {
+        // $this->authorize('posts.create');
         return view('posts.create');
     }
 
@@ -73,12 +75,20 @@ class PostController extends Controller
     public function edit($id)
     {
         $post = BlogPost::findorFail($id);
+        $this->authorize($post);
+
         return view('posts.edit', ['post' => $post]);
     }
 
     public function update(StorePost $request,$id)
     {
         $post = BlogPost::findorFail($id);
+
+        // if (Gate::denies('update-post', $post)) {
+        //     abort(403, "You can't edit this blog post!!");
+        // }
+
+
         $validatedData = $request->validated();
 
         $post->fill($validatedData);
@@ -91,6 +101,12 @@ class PostController extends Controller
     public function destroy(Request $request, $id)
     {
         $post = BlogPost::findorFail($id);
+
+        // if (Gate::denies('delete-post', $post)) {
+        //     abort(403, "You can't edit this blog post!!");
+        // }
+        $this->authorize($post);
+
         $post->delete();
 
         $request->session()->flash('status', 'Blog post was deleted!');
