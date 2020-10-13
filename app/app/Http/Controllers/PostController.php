@@ -40,7 +40,7 @@ class PostController extends Controller
         // dd(DB::getQueryLog());
         return view(
             'posts.index',
-            ['posts' => BlogPost::withCount('comments')->get()]
+            ['posts' => BlogPost::latest()->withCount('comments')->get()]
         );
     }
 
@@ -66,6 +66,7 @@ class PostController extends Controller
     public function store(StorePost $request)
     {
         $validatedData = $request->validated();
+        $validatedData['user_id'] = $request->user()->id;
         $blogPost =  BlogPost::create($validatedData);
         $request->session()->flash('status', 'Blog post was created!');
 

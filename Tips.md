@@ -892,3 +892,70 @@ public function delete(User $user, BlogPost $blogPost)
     return $user->id === $blogPost->user_id;
 }
 I don't know why but $blogPost->user_id returns a string and $user->id returns a number. This happened only in test and not in dev environment. So just use == instead of ===.
+
+# 97
+グローバルクエリスコープ
+
+コードが冗長・汚い
+```
+// app/app/Http/Controllers/PostController.php
+return view(
+            'posts.index',
+            ['posts' => BlogPost::withCount('comments')->orderBy('created_at', 'desc')->get()]
+        );
+```
+
+グローバルクエリスコープによる解決
+=> モデルにアクセスする場合にデフォルトでクエリを実行する
+
+```
+// app/app/Scopes/LatestScope.php
+<?php
+
+namespace App\Scopes;
+
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Scope;
+
+class LatestScope implements Scope
+{
+    public function apply(Builder $builder, Model $model)
+    {
+        // $builder->orderBy('created_at', 'desc');
+        $builder->orderBy(Model::CREATED_AT, 'desc'); // 上と等価
+    }
+}
+```
+
+Modelに登録する
+```
+// app/app/BlogPost.php
+static::addGlobalScope(new LatestScope);
+```
+グローバルにするとModelの呼び出し全てで
+スコープが適応されてしまう
+
+# 98
+MySQLエラーが出た場合の解決法
+セキュリティ上はよくない
+```
+// app/config/database.php
+'mysql' => [
+~~~
+            'strict' => false,
+```
+
+# 99 
+ローカルクエリスコープ
+モデルにスコープを定義して、Controllerから呼び出す
+
+```
+// app/app/BlogPost.php
+public function scopeLatest(Builder $query)
+    {
+        return $query->orderBy(static::CREATED_AT, 'desc');
+    }
+
+//
+```
