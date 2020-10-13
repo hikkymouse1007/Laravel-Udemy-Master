@@ -959,3 +959,31 @@ public function scopeLatest(Builder $query)
 
 //
 ```
+
+教材にミスがある模様。
+>You are right that the query scope name is not right in this example, as there actually is a method called latest() in Query Builder. That's my mistake obviously.
+The latest() method from Builder will take precedence. To answer Michał question, you can sort by a specific column using: latest('column_name') or oldest('column_name').
+This query scope has to be renamed to actually "work", sorry for that guys, I'll fix that soon. Just to be clear, the intention of this lecture was to show how to actually use scopes, not exactly how to get the latest stuff. But I obviously made a mistake, forgetting about the latest/oldest Builder methods!
+
+```
+You can just do:
+
+public function comments() {
+    return $this->hasMany('App\Comment')->newest();
+}
+Or keep the original relation "untouched" like:
+
+public function comments() {
+    return $this->hasMany('App\Comment');
+}
+public function newestComments() {
+    return $this->hasMany('App\Comment')->newest();
+}
+And create another one as above.
+
+Then:
+
+$post->comments - will return all comments using default sorting (by id)
+
+$post->newestComments - will return comments with local query scope applied
+```
