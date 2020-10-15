@@ -908,6 +908,60 @@ return view(
 グローバルクエリスコープによる解決
 => モデルにアクセスする場合にデフォルトでクエリを実行する
 
+>グローバルスコープは簡単に書けます。
+Illuminate\Database\Eloquent\Scopeインターフェイスを実装したクラスを定義します。
+このインターフェイスは、applyメソッドだけを実装するように要求しています。
+applyメソッドは必要に応じ、where制約を追加します。
+
+```
+namespace App\Scopes;
+
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Scope;
+
+class AgeScope implements Scope
+{
+    /**
+     * Eloquentクエリビルダへ適用するスコープ
+     *
+     * @param  \Illuminate\Database\Eloquent\Builder  $builder
+     * @param  \Illuminate\Database\Eloquent\Model  $model
+     * @return void
+     */
+    public function apply(Builder $builder, Model $model)
+    {
+        $builder->where('age', '>', 200);
+    }
+}
+```
+
+>モデルにグローバルスコープを適用するには、
+そのモデルのbootedメソッドをオーバライドし、
+addGlobalScopeメソッドを呼び出します。
+
+```
+<?php
+
+namespace App\Models;
+
+use App\Scopes\AgeScope;
+use Illuminate\Database\Eloquent\Model;
+
+class User extends Model
+{
+    /**
+     * モデルの「初期起動」メソッド
+     *
+     * @return void
+     */
+    protected static function booted()
+    {
+        static::addGlobalScope(new AgeScope);
+    }
+}
+```
+
 ```
 // app/app/Scopes/LatestScope.php
 <?php
@@ -948,7 +1002,48 @@ MySQLエラーが出た場合の解決法
 
 # 99 
 ローカルクエリスコープ
-モデルにスコープを定義して、Controllerから呼び出す
+モデルにスコープを定義して呼び出す。
+>ローカルスコープによりアプリケーション全体で簡単に再利用可能な、
+一連の共通制約を定義できます。
+たとえば、人気のある(popular)ユーザーを全員取得する必要が、
+しばしばあるとしましょう。
+スコープを定義するには、scopeを先頭につけた、
+Eloquentモデルのメソッドを定義します。
+スコープはいつもクエリビルダインスタンスを返します。
+
+```
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class User extends Model
+{
+    /**
+     * 人気のあるユーザーだけに限定するクエリスコープ
+     *
+     * @param  \Illuminate\Database\Eloquent\Builder  $query
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopePopular($query)
+    {
+        return $query->where('votes', '>', 100);
+    }
+
+    /**
+     * アクティブなユーザーだけに限定するクエリスコープ
+     *
+     * @param  \Illuminate\Database\Eloquent\Builder  $query
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeActive($query)
+    {
+        return $query->where('active', 1);
+    }
+}
+```
+https://readouble.com/laravel/8.x/ja/eloquent.html
 
 ```
 // app/BlogPost.php
@@ -985,5 +1080,80 @@ class BlogPost extends Model
         }
 ```
 
+# 102
+クエリのTips
 
+```
+// App\User.php
+class User extends Authenticatable
+{
+public function scopeWithMostBlogPostsLastMonth(Builder $query)
+    {
+        return $query->withCount(['BlogPosts' => function (Builder $query) {
+            $query->whereBetween(static::CREATED_AT, [now()->subMonths(1), now()]); //サブクエリの追加
+        }])->has('blogPosts', '>=', 2)
+           ->orderBy('blog_posts_count', 'desc');
+    }
+
+    // app/Http/Controllers/PostController.php
+    return view(
+            'posts.index',
+            [
+                'posts' => BlogPost::latest()->withCount('comments')->get(),
+                'mostCommented' => BlogPost::mostCommented()->take(5)->get(),
+                'mostActive' => User::withMostBlogPosts()->take(5)->get(),
+                'mostActiveLastMonth' => User::withMostBlogPostsLastMonth()->take(5)->get(),
+            ]
+    )
+```
+
+# 103
+グローバルクエリスコープのGood Practice
+TODO: parent::boot();より前に定義する意味を調べる
+```
+// app/app/Scopes/DeletedAdminScope.php
+class DeletedAdminScope implements Scope
+{
+    public function apply(Builder $builder, Model $model)
+    {
+        if(Auth::check() && Auth::user()->is_admin) {
+            $builder->withTrashed();
+        }
+    }
+}
+
+// app/BlogPost.php
+public static function boot()
+    {
+        static::addGlobalScope(new DeletedAdminScope); // parent::boot();より前に定義する
+        parent::boot();
+
+        
+
+// index.blade.php
+// 論理削除済みのものはdelタグを適応する
+                @if($post->trashed())
+                    <del>
+                @endif
+                <a href="{{ route('posts.show', ['post' => $post->id] )}}">
+                    {{ $post->title }}
+                </a>
+                @if($post->trashed())
+                    </del>
+                @endif
+
+```
+
+メモ:Adminでログインした場合は、MostActiveUserに
+SoftDeleteした投稿もカウントして表示される
+
+TODO:withoutGlobalScopeについて掘り下げる
+```
+public function apply(Builder $builder, Model $model)
+    {
+        if(Auth::check() && Auth::user()->is_admin) {
+            // $builder->withTrashed();
+            $builder->withoutGlobalScope('Illuminate\Database\Eloquent\SoftDeletingScope'); //特定のクエリの適応を除外できる
+        }
+    }
 ```
