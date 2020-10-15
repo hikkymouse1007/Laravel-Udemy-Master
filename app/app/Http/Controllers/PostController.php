@@ -52,9 +52,14 @@ class PostController extends Controller
      */
     public function show($id)
     {
+        // return view('posts.show', [
+        //     'post' => BlogPost::with(['comments' => function ($query) {
+        //         return $query->latest();
+        //     }])->findorFail($id)
+        // ]);
         return view('posts.show',
-            ['post' => BlogPost::with('comments')->findorFail($id)
-        ]);
+        ['post' => BlogPost::with('comments')->findorFail($id)
+    ]);
     }
 
     public function create()
