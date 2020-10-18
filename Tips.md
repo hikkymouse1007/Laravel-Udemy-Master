@@ -1157,3 +1157,40 @@ public function apply(Builder $builder, Model $model)
         }
     }
 ```
+
+## 104 blade template component
+
+コンポーネントタグでtemplateを呼び出すことができる。
+```
+// show.blade.php
+@component('badge', ['type' => 'primary'])
+    New!
+@endcomponent
+
+
+// badge.blade.php
+<div class="badge badge-{{ $type ?? 'success' }}">
+    {{ $slot }}  // テンプレートの参照先のパラメータを読み込む
+</div>
+```
+
+## 105 component aliases
+教材が古いため公式参照
+https://laravel.com/docs/7.x/blade#components
+https://readouble.com/laravel/7.x/ja/blade.html
+わかりやすいQiita
+https://qiita.com/h19e/items/52b0ce02e56e55cc96dc
+
+>make:component Artisanコマンドを使えば、クラスベースのコンポーネントを生成できます。
+make:componentコマンドはApp\View\Componentsディレクトリの中にコンポーネントを生成します。
+
+```
+$ php artisan make:component Badge
+以下のファイルが生成
+- app/app/View/Components/Badge.php
+- resources/views/components/badge.blade.php
+
+
+
+
+```
