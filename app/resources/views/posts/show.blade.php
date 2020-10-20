@@ -5,7 +5,7 @@
         {{ $post->title }}
 
         @if ((new Carbon\Carbon())->diffInMinutes($post->created_at) < 20)
-        <x-badge title="$title">
+        <x-badge>
             New Post!!!!!
         </x-badge>
     </h1>

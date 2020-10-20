@@ -11,9 +11,9 @@ class Badge extends Component
      *
      * @return void
      */
-    public function __construct(string $title)
+    public function __construct()
     {
-        $this->title = $title;
+
     }
 
     /**
