@@ -1190,7 +1190,63 @@ $ php artisan make:component Badge
 - app/app/View/Components/Badge.php
 - resources/views/components/badge.blade.php
 
+```
+
+コメントより引用
+```
+Laravel 7 and higher :
 
 
 
+Step 1 : php artisan make:component Badge
+
+
+
+This will create 2 new files.
+
+1st file - App/View/Components/Badge.php and ensure that the __construct looks as follow :
+
+    public function __construct(string $title) {
+
+      $this->title = $title;
+
+    }
+
+
+
+2nd file that was created using make:component
+
+resources/views/components/badge.blade.php and make sure that your badge.blade.php file looks like this :
+
+
+
+  <div>
+
+    <span class="badge badge-{‌{ $type ?? 'success' }}">
+
+      {‌{ $slot }}
+
+    </span>
+
+  </div>
+
+
+
+Final step will be to modify your show.blade.php and replace @badge and @endbadge with the following :
+
+
+
+  @if ((new Carbon\Carbon())->diffInMinutes($post->created_at) < 60)
+
+      <x-badge title="$title">
+
+          Super Fresh Content
+
+      </x-badge>
+
+  @endif
+
+
+
+** AppServiceProvider.php -> You can remove the following as it won't be necessary - Blade::component('components.badge', 'badge');
 ```
