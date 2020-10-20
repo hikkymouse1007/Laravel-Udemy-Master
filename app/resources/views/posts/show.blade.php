@@ -1,15 +1,18 @@
 @extends('layout')
 
 @section('content')
-    <h1>{{ $post->title }}</h1>
+    <h1>
+        {{ $post->title }}
+
+        @if ((new Carbon\Carbon())->diffInMinutes($post->created_at) < 20)
+        <x-badge>
+            New Post!!!!!
+        </x-badge>
+    </h1>
+@endif
     <p> {{ $post->content }}</p>
 
     <p>Added {{ $post->created_at->diffForHumans() }}</p>
-
-    @if ((new Carbon\Carbon())->diffInMinutes($post->created_at) < 5)
-    <strong>New!</strong>
-    @endif
-
     <h4>Comments</h4>
 
     @forelse ($post->comments as $comment)
