@@ -13,6 +13,8 @@
     <p> {{ $post->content }}</p>
 
     <p>Added {{ $post->created_at->diffForHumans() }}</p>
+
+    <p>Currently read by {{ $counter }} people</p>
     <h4>Comments</h4>
 
     @forelse ($post->comments as $comment)
