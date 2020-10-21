@@ -1250,3 +1250,102 @@ Final step will be to modify your show.blade.php and replace @badge and @endbadg
 
 ** AppServiceProvider.php -> You can remove the following as it won't be necessary - Blade::component('components.badge', 'badge');
 ```
+
+## 110 cache
+![スクリーンショット 2020-10-21 22 38 24](https://user-images.githubusercontent.com/54907440/96727716-5a1e2000-13ee-11eb-9777-9d546a1af353.png)
+![スクリーンショット 2020-10-21 22 39 02](https://user-images.githubusercontent.com/54907440/96727732-5db1a700-13ee-11eb-8111-63a160526581.png)
+
+## 111 Laravel debugbar
+https://github.com/barryvdh/laravel-debugbar
+
+```
+composer require barryvdh/laravel-debugbar --dev
+
+// .env
+APP_DEBUG=true //trueだと使用可能
+```
+
+### 112 data in cache
+キャッシュすることで、指定した時間だけキャッシュを保存する
+```
+// app/app/Http/Controllers/PostController.php
+public function index()
+    {
+
+        $mostCommented = Cache::remember('mostCommented', now()->addSeconds(10), function () { //Cacheの実行
+            return BlogPost::mostCommented()->take(5)->get();
+        }); 
+        return view(
+            'posts.index',
+            [
+                'posts' => BlogPost::latest()->withCount('comments')->with('user')->get(),
+                'mostCommented' => $mostCommented,
+                'mostActive' => User::withMostBlogPosts()->take(5)->get(),
+                'mostActiveLastMonth' => User::withMostBlogPostsLastMonth()->take(5)->get(),
+            ]
+        );
+    }
+
+//Illuminate\Support\Facades\Cache::remember
+
+<?php
+public static function remember($key, $ttl, $callback) { }
+@param string $key //Cacheに任意の名前をつける
+
+@param \DateTimeInterface|\DateInterval|int $ttl //保存する時間
+
+@param \Closure $callback //実行するクロージャ
+
+@return mixed
+
+// app/app/Http/Controllers/PostController.php
+// 一投稿のみを対象としたキャッシュに一意な名前をつける
+public function show($id)
+    {
+$blogPost = Cache::remember("blog-post-{$id}", 60, function () use($id) {
+        return BlogPost::with('comments')->findorFail($id);
+    });
+
+
+// app/app/BlogPost.php
+// キャッシュ更新時の削除イベントを登録
+static::updating(function (BlogPost $blogPost) {
+            Cache::forget("blog-post-{$blogPost->id}");
+        });
+```
+
+## 114 Cache Facade
+
+```
+Cache::put('key', 'value', ttl); 
+
+// php artisan tinker
+>>> Cache::put('data', 'Hello from cache', 60); // Laravel 7は保存時間(ttl)がsecなので注意
+=> true
+>>> Cache::get('data');
+=> "Hello from cache"
+>>> Cache::has('data');
+=> true
+>>> Cache::get('data2', 'hello'); //getでも登録できる
+=> "hello"
+>>> Cache::increment('counter')
+=> 2
+>>> Cache::increment('counter')
+=> 2
+>>> Cache::increment('counter')
+=> 3
+>>> Cache::increment('counter')
+=> 4
+>>> Cache::increment('xxx')
+=> 1
+>>> Cache::increment('xxx')
+=> 2
+>>> Cache::increment('xxx')
+=> 3
+>>> Cache::decrement('xxx')
+=> 1
+>>> Cache::decrement('xxx')
+=> 0
+
+```
+

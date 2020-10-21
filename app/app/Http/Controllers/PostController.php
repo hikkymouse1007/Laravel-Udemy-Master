@@ -6,8 +6,7 @@ use Illuminate\Http\Request;
 use App\User;
 use App\BlogPost;
 use App\Http\Requests\StorePost;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Cache;
 
 class PostController extends Controller
 {
@@ -25,27 +24,26 @@ class PostController extends Controller
     public function index()
     {
 
-        //SQLのクエリログを使用可能にする
-        // DB::enableQueryLog();
+        $mostCommented = Cache::remember('blog-post-commented', 60, function () {
+            return BlogPost::mostCommented()->take(5)->get();
+        });
 
-        // BlogPost::all()より早い
-        // $posts = BlogPost::with('comments')->get();
+        $mostActive = Cache::remember('users-most-active', 60, function () {
+            return BlogPost::mostCommented()->take(5)->get();
+        });
 
-        // foreach ($posts as $post) {
-        //     foreach ($post->comments as $comment) {
-        //         echo $comment->content;
-        //     }
-        // }
+        $mostActiveLastMonth = Cache::remember('users-most-active-last-month', 60, function () {
+            return BlogPost::mostCommented()->take(5)->get();
+        });
 
-        //　ブラウザから実行クエリの確認
-        // dd(DB::getQueryLog());
+
         return view(
             'posts.index',
             [
-                'posts' => BlogPost::latest()->withCount('comments')->get(),
-                'mostCommented' => BlogPost::mostCommented()->take(5)->get(),
-                'mostActive' => User::withMostBlogPosts()->take(5)->get(),
-                'mostActiveLastMonth' => User::withMostBlogPostsLastMonth()->take(5)->get(),
+                'posts' => BlogPost::latest()->withCount('comments')->with('user')->get(),
+                'mostCommented' => $mostCommented,
+                'mostActive' => $mostActive,
+                'mostActiveLastMonth' => $mostActiveLastMonth,
             ]
         );
     }
@@ -63,9 +61,13 @@ class PostController extends Controller
         //         return $query->latest();
         //     }])->findorFail($id)
         // ]);
-        return view('posts.show',
-        ['post' => BlogPost::with('comments')->findorFail($id)
-    ]);
+    $blogPost = Cache::remember("blog-post-{$id}", 60, function () use($id) {
+        return BlogPost::with('comments')->findorFail($id);
+    });
+
+        return view('posts.show',[
+            'post' => $blogPost
+        ]);
     }
 
     public function create()
