@@ -1349,5 +1349,5 @@ Cache::put('key', 'value', ttl);
 
 ```
 
-## 116
+## 115・116
 ![スクリーンショット 2020-10-22 0 00 44](https://user-images.githubusercontent.com/54907440/96738566-d23e1300-13f9-11eb-9bd3-1d30292e1f84.png)

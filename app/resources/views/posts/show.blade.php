@@ -10,6 +10,7 @@
         </x-badge>
     </h1>
 @endif
+
     <p> {{ $post->content }}</p>
 
     <p>Added {{ $post->created_at->diffForHumans() }}</p>
