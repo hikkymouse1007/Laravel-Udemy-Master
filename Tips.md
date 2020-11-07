@@ -1250,3 +1250,250 @@ Final step will be to modify your show.blade.php and replace @badge and @endbadg
 
 ** AppServiceProvider.php -> You can remove the following as it won't be necessary - Blade::component('components.badge', 'badge');
 ```
+
+## 110 cache
+![スクリーンショット 2020-10-21 22 38 24](https://user-images.githubusercontent.com/54907440/96727716-5a1e2000-13ee-11eb-9777-9d546a1af353.png)
+![スクリーンショット 2020-10-21 22 39 02](https://user-images.githubusercontent.com/54907440/96727732-5db1a700-13ee-11eb-8111-63a160526581.png)
+
+## 111 Laravel debugbar
+https://github.com/barryvdh/laravel-debugbar
+
+```
+composer require barryvdh/laravel-debugbar --dev
+
+// .env
+APP_DEBUG=true //trueだと使用可能
+```
+
+### 112 data in cache
+キャッシュすることで、指定した時間だけキャッシュを保存する
+```
+// app/app/Http/Controllers/PostController.php
+public function index()
+    {
+
+        $mostCommented = Cache::remember('mostCommented', now()->addSeconds(10), function () { //Cacheの実行
+            return BlogPost::mostCommented()->take(5)->get();
+        }); 
+        return view(
+            'posts.index',
+            [
+                'posts' => BlogPost::latest()->withCount('comments')->with('user')->get(),
+                'mostCommented' => $mostCommented,
+                'mostActive' => User::withMostBlogPosts()->take(5)->get(),
+                'mostActiveLastMonth' => User::withMostBlogPostsLastMonth()->take(5)->get(),
+            ]
+        );
+    }
+
+//Illuminate\Support\Facades\Cache::remember
+
+<?php
+public static function remember($key, $ttl, $callback) { }
+@param string $key //Cacheに任意の名前をつける
+
+@param \DateTimeInterface|\DateInterval|int $ttl //保存する時間
+
+@param \Closure $callback //実行するクロージャ
+
+@return mixed
+
+// app/app/Http/Controllers/PostController.php
+// 一投稿のみを対象としたキャッシュに一意な名前をつける
+public function show($id)
+    {
+$blogPost = Cache::remember("blog-post-{$id}", 60, function () use($id) {
+        return BlogPost::with('comments')->findorFail($id);
+    });
+
+
+// app/app/BlogPost.php
+// キャッシュ更新時の削除イベントを登録
+static::updating(function (BlogPost $blogPost) {
+            Cache::forget("blog-post-{$blogPost->id}");
+        });
+```
+
+## 114 Cache Facade
+
+```
+Cache::put('key', 'value', ttl); 
+
+// php artisan tinker
+>>> Cache::put('data', 'Hello from cache', 60); // Laravel 7は保存時間(ttl)がsecなので注意
+=> true
+>>> Cache::get('data');
+=> "Hello from cache"
+>>> Cache::has('data');
+=> true
+>>> Cache::get('data2', 'hello'); //getでも登録できる
+=> "hello"
+>>> Cache::increment('counter')
+=> 2
+>>> Cache::increment('counter')
+=> 2
+>>> Cache::increment('counter')
+=> 3
+>>> Cache::increment('counter')
+=> 4
+>>> Cache::increment('xxx')
+=> 1
+>>> Cache::increment('xxx')
+=> 2
+>>> Cache::increment('xxx')
+=> 3
+>>> Cache::decrement('xxx')
+=> 1
+>>> Cache::decrement('xxx')
+=> 0
+
+```
+
+## 115・116
+![スクリーンショット 2020-10-22 0 00 44](https://user-images.githubusercontent.com/54907440/96738566-d23e1300-13f9-11eb-9bd3-1d30292e1f84.png)
+
+
+## 117 
+DockerのRedisセットアップ
+1. docker-composeに追記
+```
+// docker-compose
+redis:
+    container_name: redis
+    image: redis
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+```
+2. laravelコンテナにpredisインストール
+
+```
+$ docker exec -it u-web bash
+COMPOSER_MEMORY_LIMIT=-1 composer require predis/predis
+```
+
+3. キャッシュのコンフィグ
+
+```
+// app/config/database.php
+'redis' => [
+
+        'client' => env('REDIS_CLIENT', 'predis'),
+
+        'options' => [
+            'cluster' => env('REDIS_CLUSTER', 'redis'),
+            'prefix' => env('REDIS_PREFIX', Str::slug(env('APP_NAME', 'laravel'), '_').'_database_'),
+        ],
+
+        'default' => [
+            'url' => env('REDIS_URL'),
+            'host' => env('REDIS_HOST', '127.0.0.1'),
+            'password' => env('REDIS_PASSWORD', null),
+            'port' => env('REDIS_PORT', '6379'),
+            'database' => env('REDIS_DB', '0'),
+        ],
+
+        'cache' => [
+            'url' => env('REDIS_URL'),
+            'host' => env('REDIS_HOST', '127.0.0.1'),
+            'password' => env('REDIS_PASSWORD', null),
+            'port' => env('REDIS_PORT', '6379'),
+            'database' => env('REDIS_CACHE_DB', '1'),
+        ],
+
+    ],
+
+// app/config/cache.php
+'redis' => [
+            'driver' => 'redis',
+            'connection' => 'cache',
+        ],
+
+
+// .env
+BROADCAST_DRIVER=log
+CACHE_DRIVER=redis
+QUEUE_CONNECTION=redis
+SESSION_DRIVER=file
+SESSION_LIFETIME=120
+
+REDIS_HOST=redis //コンテナのローカルipでもOK
+REDIS_PASSWORD=null
+REDIS_PORT=6379
+```
+
+4. Tinkerによるpredisデバッグ
+https://qiita.com/kazuki5555/items/605d5d212aa741910724
+
+```
+// pingがないときはインストールする
+apt-get install iputils-ping net-tools
+
+// ホスト名にコンテナ名を明示 or pingコマンドで確認できるコンテナのipを指定
+#ping redis
+PING redis (172.21.0.3) 56(84) bytes of data.
+64 bytes from redis.master-laravel_udemy_default (172.21.0.3): icmp_seq=1 ttl=64 time=0.154 ms
+64 b
+
+// コンテナのipは以下のコマンドでも確認可能
+hostname -i
+
+root@1a18d9c34b4e:/var/www/html# hostname -i
+172.21.0.6
+
+>>>$client = new Predis\Client(['host' => 'redis']);
+=> Predis\Client {#4190}
+>>> $client->set('foo', 'bar');
+=> Predis\Response\Status {#4192}
+
+```
+
+5. キャッシュに余計なデータが入っているとき、.envを更新したとき
+
+```
+php artisan cache:clear
+php artisan config:cache
+```
+6. キャッシュの接続テスト
+
+```
+// routes/web.php
+Route::get('/redis', 'PostController@redis');
+
+// PostController.php
+public function redis(){
+        Cache::put('name', 'aaa',100);
+        return Cache::get('name');
+    }
+```
+
+## 118
+Cache::tags
+```
+// Cache::tags(['key', 'value'])->put('name', "John", int $seconds);
+
+>>> Cache::tags(['people', 'artists'])->put('John', "Hello Iam John", 100);
+=> true
+>>> Cache::tags(['people', 'artists'])->get('John');=> "Hello Iam John"
+
+// タグを指定した場合はそのままget()では呼び出せない
+>>> Cache::get('John')
+=> null
+
+>>> Cache::tags(['people', 'authors'])->put('Anne', 'Hello
+ Iam Anne', 100);
+=> true
+>>> Cache::tags(['people', 'authors'])->get('Anne');=> "Hello Iam Anne"
+
+// タグ指定したキャッシュデータを削除
+>>> Cache::tags(['people', 'artists'])->get('John');=> "Hello Iam John"
+>>> Cache::tags(['people', 'authors'])->get('Anne');=> "Hello Iam Anne"
+>>> Cache::tags(['people'])->flush();=> true
+>>> Cache::tags(['people', 'artists'])->get('John');
+=> null
+>>> Cache::tags(['people', 'authors'])->get('Anne');
+=> null
+>>> 
+
+
+```
