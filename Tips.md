@@ -1466,3 +1466,34 @@ public function redis(){
         return Cache::get('name');
     }
 ```
+
+## 118
+Cache::tags
+```
+// Cache::tags(['key', 'value'])->put('name', "John", int $seconds);
+
+>>> Cache::tags(['people', 'artists'])->put('John', "Hello Iam John", 100);
+=> true
+>>> Cache::tags(['people', 'artists'])->get('John');=> "Hello Iam John"
+
+// タグを指定した場合はそのままget()では呼び出せない
+>>> Cache::get('John')
+=> null
+
+>>> Cache::tags(['people', 'authors'])->put('Anne', 'Hello
+ Iam Anne', 100);
+=> true
+>>> Cache::tags(['people', 'authors'])->get('Anne');=> "Hello Iam Anne"
+
+// タグ指定したキャッシュデータを削除
+>>> Cache::tags(['people', 'artists'])->get('John');=> "Hello Iam John"
+>>> Cache::tags(['people', 'authors'])->get('Anne');=> "Hello Iam Anne"
+>>> Cache::tags(['people'])->flush();=> true
+>>> Cache::tags(['people', 'artists'])->get('John');
+=> null
+>>> Cache::tags(['people', 'authors'])->get('Anne');
+=> null
+>>> 
+
+
+```
