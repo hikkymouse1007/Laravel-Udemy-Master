@@ -29,4 +29,7 @@ Route::get('/secret', 'HomeController@secret')
 
 Route::resource('/posts', 'PostController');
 
+// redisのテスト
+Route::get('/redis', 'PostController@redis');
+
 Auth::routes();
