@@ -25,9 +25,11 @@ class PostController extends Controller
     public function index()
     {
 
+        // Cache::remember('key', $seconds, function ()
         $mostCommented = Cache::remember('blog-post-commented', 60, function () {
             return BlogPost::mostCommented()->take(5)->get();
         });
+
 
         $mostActive = Cache::remember('users-most-active', 60, function () {
             return BlogPost::mostCommented()->take(5)->get();
@@ -66,10 +68,10 @@ class PostController extends Controller
             return BlogPost::with('comments')->findOrFail($id);
         });
 
+
         $sessionId = session()->getId();
         $counterKey = "blog-post-{$id}-counter";
         $usersKey = "blog-post-{$id}-users";
-
         $users = Cache::get($usersKey, []);
         $usersUpdate = [];
         $diffrence = 0;
@@ -91,6 +93,7 @@ class PostController extends Controller
         }
 
         $usersUpdate[$sessionId] = $now;
+
         Cache::forever($usersKey, $usersUpdate);
 
         if (!Cache::has($counterKey)) {
