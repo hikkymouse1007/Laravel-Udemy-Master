@@ -31,5 +31,6 @@ Route::resource('/posts', 'PostController');
 
 // redisのテスト
 Route::get('/redis', 'PostController@redis');
+Route::get('/users', 'PostController@users');
 
 Auth::routes();

@@ -8,6 +8,7 @@ use App\BlogPost;
 use App\Http\Requests\StorePost;
 use Carbon\Traits\Difference;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 class PostController extends Controller
 {
@@ -22,6 +23,17 @@ class PostController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
+
+     public function users()
+     {
+        // idの配列を作成
+        $ids = User::all()->pluck('id')->toArray();
+        $users = User::whereIn('id', $ids)->get();
+        return view('posts.users', [
+            'users' => $users,
+        ]);
+     }
+
     public function index()
     {
 
